@@ -53,8 +53,8 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "klyntos-guard=klyntos_guard.cli.main:cli",
-            "kg=klyntos_guard.cli.main:cli",  # Short alias
+            "klyntos-guard=klyntos_guard.cli.enhanced_cli:cli",
+            "kg=klyntos_guard.cli.enhanced_cli:cli",  # Short alias
         ],
     },
     classifiers=[
