@@ -1,0 +1,292 @@
+# KlyntosGuard Configuration Example
+# This file demonstrates the configuration format for guardrails
+
+# LLM Configuration
+llm:
+  # Primary LLM provider
+  provider: openai  # Options: openai, anthropic, google, azure
+  model: gpt-4
+  api_key: ${OPENAI_API_KEY}  # Use environment variables for secrets
+  temperature: 0.7
+  max_tokens: 2000
+
+  # Optional: Fallback providers
+  fallback:
+    - provider: anthropic
+      model: claude-3-opus-20240229
+      api_key: ${ANTHROPIC_API_KEY}
+
+# Input Rails - Process user input before it reaches the LLM
+input_rails:
+  # Content Safety Rail
+  - name: content_safety
+    enabled: true
+    priority: 10  # Lower number = higher priority
+    description: Block toxic, violent, or harmful content
+    config:
+      block_topics:
+        - violence
+        - illegal_activities
+        - hate_speech
+        - self_harm
+        - sexual_content
+      threshold: 0.8  # Confidence threshold for blocking
+      action: block  # Options: block, warn, redact
+
+  # PII Detection Rail
+  - name: pii_detection
+    enabled: true
+    priority: 20
+    description: Detect and redact personally identifiable information
+    config:
+      detect:
+        - email
+        - phone_number
+        - ssn
+        - credit_card
+        - ip_address
+        - passport_number
+        - drivers_license
+      action: redact  # Replace detected PII with [REDACTED]
+      locale: en_US
+
+  # Jailbreak Prevention Rail
+  - name: jailbreak_prevention
+    enabled: true
+    priority: 15
+    description: Detect and block prompt injection attempts
+    config:
+      detection_methods:
+        - pattern_matching
+        - llm_based
+      block_patterns:
+        - "ignore previous instructions"
+        - "disregard all rules"
+        - "you are now"
+        - "new instructions"
+
+  # Custom Topic Control
+  - name: topic_control
+    enabled: true
+    priority: 30
+    description: Ensure conversations stay within allowed topics
+    config:
+      allowed_topics:
+        - customer_support
+        - product_information
+        - technical_questions
+        - general_inquiry
+      blocked_topics:
+        - politics
+        - religion
+        - competitors
+      action: block
+
+# Output Rails - Process LLM responses before delivery
+output_rails:
+  # Toxicity Filter
+  - name: toxicity_filter
+    enabled: true
+    priority: 10
+    description: Filter toxic or inappropriate AI responses
+    config:
+      threshold: 0.8
+      categories:
+        - toxicity
+        - severe_toxicity
+        - obscene
+        - threat
+        - insult
+      action: block
+
+  # Fact Checking Rail
+  - name: fact_checking
+    enabled: true
+    priority: 20
+    description: Verify factual claims in AI responses
+    config:
+      require_sources: true
+      confidence_threshold: 0.85
+      verification_methods:
+        - knowledge_base
+        - external_api
+      action: warn  # Allow but flag uncertain facts
+
+  # Bias Detection
+  - name: bias_detection
+    enabled: false  # Disabled by default
+    priority: 30
+    description: Detect and flag potentially biased outputs
+    config:
+      bias_types:
+        - gender
+        - race
+        - age
+        - religion
+      sensitivity: medium  # Options: low, medium, high
+      action: warn
+
+  # Output Format Validation
+  - name: format_validation
+    enabled: true
+    priority: 40
+    description: Ensure outputs match expected formats
+    config:
+      max_length: 2000
+      require_citations: false
+      allowed_formats:
+        - markdown
+        - plain_text
+      forbidden_patterns:
+        - "<script"
+        - "javascript:"
+
+# Dialog Rails - Guide conversation flow
+dialog_rails:
+  # Topic Steering
+  - name: topic_steering
+    enabled: true
+    priority: 10
+    description: Keep conversations within allowed domains
+    config:
+      conversation_domains:
+        - customer_service
+        - technical_support
+      max_topic_drift: 2  # Number of off-topic exchanges allowed
+      redirect_message: "I'm here to help with customer support. How can I assist you with your account or product?"
+
+  # Intent Classification
+  - name: intent_classification
+    enabled: true
+    priority: 20
+    description: Classify user intents and route appropriately
+    config:
+      intents:
+        - support_question
+        - feature_request
+        - complaint
+        - general_inquiry
+      routing_rules:
+        complaint: escalate_to_human
+        feature_request: log_and_acknowledge
+
+  # Escalation Detection
+  - name: escalation_detection
+    enabled: true
+    priority: 15
+    description: Detect when human intervention is needed
+    config:
+      escalation_triggers:
+        - user_frustration
+        - complex_request
+        - multiple_failed_attempts
+        - explicit_request
+      action: notify_human_agent
+
+# Retrieval Rails - For RAG applications
+retrieval_rails:
+  # Source Verification
+  - name: source_verification
+    enabled: true
+    priority: 10
+    description: Ensure retrieved content is from trusted sources
+    config:
+      trusted_domains:
+        - company.com
+        - docs.company.com
+        - help.company.com
+      require_verification: true
+      action: filter  # Remove untrusted sources
+
+  # Relevance Filtering
+  - name: relevance_filtering
+    enabled: true
+    priority: 20
+    description: Filter irrelevant retrieved chunks
+    config:
+      min_relevance_score: 0.7
+      max_chunks: 5
+      rerank: true
+
+  # Grounding Validation
+  - name: grounding_validation
+    enabled: true
+    priority: 30
+    description: Verify LLM responses are grounded in retrieved data
+    config:
+      require_citations: true
+      max_hallucination_score: 0.3
+      action: block_ungrounded
+
+# Execution Rails - For AI agents and tool use
+execution_rails:
+  # Code Safety
+  - name: code_safety
+    enabled: true
+    priority: 10
+    description: Prevent execution of dangerous code
+    config:
+      allowed_languages:
+        - python
+        - javascript
+      forbidden_operations:
+        - file_deletion
+        - network_access
+        - system_commands
+      sandbox_required: true
+
+  # API Authorization
+  - name: api_authorization
+    enabled: true
+    priority: 20
+    description: Validate external API calls
+    config:
+      allowed_apis:
+        - internal.company.com/api
+        - public-api.company.com
+      require_approval:
+        - payment_apis
+        - data_modification
+      rate_limits:
+        default: 100/minute
+
+  # Resource Limits
+  - name: resource_limits
+    enabled: true
+    priority: 30
+    description: Prevent resource exhaustion
+    config:
+      max_execution_time: 30  # seconds
+      max_memory_mb: 512
+      max_cpu_percent: 80
+
+# Global Settings
+settings:
+  # Monitoring
+  enable_metrics: true
+  enable_audit_logs: true
+  log_level: INFO
+
+  # Performance
+  cache_enabled: true
+  cache_ttl: 3600  # seconds
+  parallel_rails: true  # Run independent rails in parallel
+
+  # Security
+  encrypt_logs: true
+  redact_in_logs: true  # Redact sensitive data in logs
+
+  # Rate Limiting (per tenant/user)
+  rate_limits:
+    requests_per_minute: 100
+    requests_per_hour: 5000
+    requests_per_day: 50000
+
+# Multi-tenancy (Enterprise)
+tenants:
+  default:
+    name: Default Tenant
+    enabled: true
+    quota:
+      monthly_requests: 100000
+    overrides: {}  # Tenant-specific config overrides
