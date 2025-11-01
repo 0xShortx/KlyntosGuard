@@ -64,3 +64,7 @@ stripe>=11.1.1
 # Additional Dependencies
 python-slugify>=8.0.4
 email-validator>=2.2.0
+
+# CLI
+click>=8.1.7
+rich>=13.9.4
