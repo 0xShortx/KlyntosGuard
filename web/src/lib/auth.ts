@@ -83,6 +83,8 @@ export const auth = betterAuth({
       clientId: process.env.GITHUB_CLIENT_ID || '',
       clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
       enabled: !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
+      // Request repo access for GitHub scanning
+      scope: ['user:email', 'read:user', 'repo'],
     },
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
