@@ -169,6 +169,34 @@ export const guardTokenUsage = pgTable('guard_token_usage', {
 })
 
 /**
+ * GitHub Repositories - Configure webhooks and auto-scan settings
+ */
+export const guardGitHubRepositories = pgTable('guard_github_repositories', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+
+  // Repository details
+  fullName: text('full_name').notNull(), // e.g., "owner/repo"
+  defaultBranch: text('default_branch').notNull().default('main'),
+
+  // Auto-scan configuration
+  autoScanEnabled: boolean('auto_scan_enabled').default(false),
+  autoscanBranches: text('autoscan_branches').array(), // ['main', 'develop']
+  prScanEnabled: boolean('pr_scan_enabled').default(false),
+  policy: text('policy').default('moderate'),
+
+  // Webhook configuration
+  webhookId: text('webhook_id'), // GitHub webhook ID
+  webhookSecret: text('webhook_secret'), // Secret for verifying webhook signatures
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+/**
  * Scan History - Track individual scans
  * NOTE: Uses TEXT for IDs to match Better Auth standard
  */
@@ -178,14 +206,29 @@ export const guardScans = pgTable('guard_scans', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
 
+  // Scan type
+  type: text('type').notNull(), // 'github' | 'local' | 'upload'
+
   // Scan details
   fileName: text('file_name'),
   language: text('language'),
   code: text('code'),
   policy: text('policy').default('moderate'),
 
+  // GitHub-specific fields
+  githubUrl: text('github_url'),
+  branch: text('branch'),
+  commitSha: text('commit_sha'),
+  prNumber: integer('pr_number'),
+
+  // Trigger information
+  triggeredBy: text('triggered_by'), // 'manual' | 'webhook' | 'pr'
+  webhookDeliveryId: text('webhook_delivery_id'),
+
   // Results
-  status: text('status').notNull(), // 'passed' | 'failed'
+  status: text('status').notNull(), // 'pending' | 'scanning' | 'completed' | 'failed'
+  results: text('results'), // JSON string of scan results
+  error: text('error'),
   vulnerabilityCount: integer('vulnerability_count').default(0),
 
   // Metadata
@@ -195,6 +238,7 @@ export const guardScans = pgTable('guard_scans', {
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
 })
 
 /**
@@ -237,6 +281,8 @@ export type GuardSubscription = typeof guardSubscriptions.$inferSelect
 export type NewGuardSubscription = typeof guardSubscriptions.$inferInsert
 export type GuardTokenUsage = typeof guardTokenUsage.$inferSelect
 export type NewGuardTokenUsage = typeof guardTokenUsage.$inferInsert
+export type GuardGitHubRepository = typeof guardGitHubRepositories.$inferSelect
+export type NewGuardGitHubRepository = typeof guardGitHubRepositories.$inferInsert
 export type GuardScan = typeof guardScans.$inferSelect
 export type NewGuardScan = typeof guardScans.$inferInsert
 export type GuardVulnerability = typeof guardVulnerabilities.$inferSelect

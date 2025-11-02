@@ -1,32 +1,86 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Terminal, Folder, FileCode, AlertTriangle, CheckCircle, ArrowRight, Shield } from 'lucide-react'
+import { Terminal, Folder, FileCode, AlertTriangle, CheckCircle, ArrowRight, Shield, Github, Upload } from 'lucide-react'
+import { RepoSelector } from '@/components/github/repo-selector'
+
+type ScanType = 'github-url' | 'github-selector' | 'local' | 'upload'
 
 export default function GuardrailsPage() {
+  const [scanType, setScanType] = useState<ScanType>('github-url')
   const [projectPath, setProjectPath] = useState('')
+  const [githubUrl, setGithubUrl] = useState('')
   const [isScanning, setIsScanning] = useState(false)
   const [results, setResults] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [hasGitHubAccess, setHasGitHubAccess] = useState(false)
 
-  const handleScan = async (e: React.FormEvent) => {
+  useEffect(() => {
+    checkGitHubAccess()
+  }, [])
+
+  const checkGitHubAccess = async () => {
+    try {
+      const response = await fetch('/api/v1/github/repos')
+      setHasGitHubAccess(response.ok)
+    } catch (error) {
+      setHasGitHubAccess(false)
+    }
+  }
+
+  const handleGitHubUrlScan = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!projectPath.trim()) return
+    if (!githubUrl.trim()) return
 
     setIsScanning(true)
+    setError(null)
+    setResults(null)
 
-    // Simulate scan (replace with actual scan logic)
-    setTimeout(() => {
-      setResults({
-        files: 23,
-        issues: 3,
-        critical: 1,
-        high: 2,
-        medium: 0,
-        low: 0
+    try {
+      const response = await fetch('/api/v1/scan-github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ githubUrl: githubUrl.trim(), policy: 'moderate' }),
       })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || data.error || 'Scan failed')
+
+      setResults(data)
+    } catch (err: any) {
+      setError(err.message || 'Failed to scan repository')
+    } finally {
       setIsScanning(false)
-    }, 2000)
+    }
+  }
+
+  const handleRepoSelect = async (fullName: string, branch: string) => {
+    setGithubUrl(`https://github.com/${fullName}`)
+    setIsScanning(true)
+    setError(null)
+    setResults(null)
+
+    try {
+      const response = await fetch('/api/v1/scan-github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          githubUrl: `https://github.com/${fullName}`,
+          branch,
+          policy: 'moderate'
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || data.error || 'Scan failed')
+
+      setResults(data)
+    } catch (err: any) {
+      setError(err.message || 'Failed to scan repository')
+    } finally {
+      setIsScanning(false)
+    }
   }
 
   return (
@@ -136,42 +190,152 @@ export default function GuardrailsPage() {
           <div className="border-4 border-black dark:border-white bg-white dark:bg-black p-8">
             <h2 className="text-3xl font-black mb-6 uppercase">Scan Your Project</h2>
 
-            <form onSubmit={handleScan} className="space-y-6">
-              <div>
-                <label className="block text-sm font-black uppercase tracking-wide mb-2">
-                  PROJECT PATH
-                </label>
-                <input
-                  type="text"
-                  value={projectPath}
-                  onChange={(e) => setProjectPath(e.target.value)}
-                  placeholder="/Users/you/projects/myapp"
-                  className="w-full px-4 py-4 border-4 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white font-bold text-lg focus:outline-none focus:border-blue-600"
-                  disabled={isScanning}
-                />
-                <p className="mt-2 text-sm font-bold text-gray-600 dark:text-gray-400">
-                  Enter the absolute path to your project directory
-                </p>
-              </div>
+            {/* Scan Type Selector */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <button
+                type="button"
+                onClick={() => setScanType('github-url')}
+                className={`p-4 border-4 font-black uppercase text-sm transition-all ${
+                  scanType === 'github-url'
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'border-black dark:border-white text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900'
+                }`}
+              >
+                <Github className="w-6 h-6 mx-auto mb-2" strokeWidth={3} />
+                GitHub URL
+              </button>
 
               <button
-                type="submit"
-                disabled={isScanning || !projectPath.trim()}
-                className="w-full px-8 py-5 bg-blue-600 border-4 border-blue-600 text-white font-black text-lg uppercase tracking-wide hover:bg-black hover:border-black dark:hover:bg-white dark:hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-3"
+                type="button"
+                onClick={() => setScanType('github-selector')}
+                className={`p-4 border-4 font-black uppercase text-sm transition-all ${
+                  scanType === 'github-selector'
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'border-black dark:border-white text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900'
+                }`}
               >
-                {isScanning ? (
-                  <>
-                    <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
-                    SCANNING...
-                  </>
-                ) : (
-                  <>
-                    <Terminal className="w-6 h-6" strokeWidth={3} />
-                    START SCAN
-                  </>
-                )}
+                <Folder className="w-6 h-6 mx-auto mb-2" strokeWidth={3} />
+                My Repos
               </button>
-            </form>
+
+              <button
+                type="button"
+                onClick={() => setScanType('local')}
+                className={`p-4 border-4 font-black uppercase text-sm transition-all ${
+                  scanType === 'local'
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'border-black dark:border-white text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900'
+                }`}
+              >
+                <Terminal className="w-6 h-6 mx-auto mb-2" strokeWidth={3} />
+                Local Path
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setScanType('upload')}
+                className={`p-4 border-4 font-black uppercase text-sm transition-all ${
+                  scanType === 'upload'
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'border-black dark:border-white text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900'
+                }`}
+              >
+                <Upload className="w-6 h-6 mx-auto mb-2" strokeWidth={3} />
+                Upload ZIP
+              </button>
+            </div>
+
+            {/* GitHub URL Scan */}
+            {scanType === 'github-url' && (
+              <form onSubmit={handleGitHubUrlScan} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-black uppercase tracking-wide mb-2">
+                    GitHub Repository URL
+                  </label>
+                  <input
+                    type="text"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    placeholder="https://github.com/username/repository"
+                    className="w-full px-4 py-4 border-4 border-black dark:border-white bg-white dark:bg-black text-black dark:text-white font-bold text-lg focus:outline-none focus:border-blue-600"
+                    disabled={isScanning}
+                  />
+                  <p className="mt-2 text-sm font-bold text-gray-600 dark:text-gray-400">
+                    Supports: https://github.com/owner/repo or git@github.com:owner/repo.git
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isScanning || !githubUrl.trim()}
+                  className="w-full px-8 py-5 bg-blue-600 border-4 border-blue-600 text-white font-black text-lg uppercase tracking-wide hover:bg-black hover:border-black dark:hover:bg-white dark:hover:text-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-3"
+                >
+                  {isScanning ? (
+                    <>
+                      <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                      SCANNING...
+                    </>
+                  ) : (
+                    <>
+                      <Github className="w-6 h-6" strokeWidth={3} />
+                      SCAN GITHUB REPOSITORY
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* GitHub Selector */}
+            {scanType === 'github-selector' && (
+              <RepoSelector
+                onSelectRepo={handleRepoSelect}
+                accessToken={hasGitHubAccess ? 'connected' : undefined}
+              />
+            )}
+
+            {/* Local Path - CLI Only */}
+            {scanType === 'local' && (
+              <div className="border-4 border-black dark:border-white bg-gray-50 dark:bg-gray-900 p-8 text-center">
+                <Terminal className="w-16 h-16 mx-auto mb-4 text-gray-400" strokeWidth={3} />
+                <h3 className="text-xl font-black mb-2">Local Path Scanning Requires CLI</h3>
+                <p className="text-gray-600 dark:text-gray-400 font-bold mb-6">
+                  Use the KlyntosGuard CLI to scan local projects
+                </p>
+                <div className="border-4 border-black dark:border-white bg-black dark:bg-white p-4 font-mono text-sm text-left">
+                  <div className="text-green-400 dark:text-green-600 font-bold"># Install CLI</div>
+                  <pre className="text-white dark:text-black font-bold">pip install klyntos-guard</pre>
+                  <div className="text-green-400 dark:text-green-600 font-bold mt-2"># Scan project</div>
+                  <pre className="text-white dark:text-black font-bold">kg scan . --recursive</pre>
+                </div>
+              </div>
+            )}
+
+            {/* Upload - Coming Soon */}
+            {scanType === 'upload' && (
+              <div className="border-4 border-black dark:border-white bg-gray-50 dark:bg-gray-900 p-12 text-center">
+                <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" strokeWidth={3} />
+                <h3 className="text-xl font-black mb-2">File Upload Coming Soon</h3>
+                <p className="text-gray-600 dark:text-gray-400 font-bold mb-6">
+                  Upload a ZIP file of your project for scanning
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-500 font-bold">
+                  For now, use GitHub URL or CLI scanning
+                </p>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="mt-6 border-4 border-red-600 bg-red-50 dark:bg-red-950/20 p-6">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" strokeWidth={3} />
+                  <div>
+                    <h3 className="font-black text-lg text-red-900 dark:text-red-100 mb-2">Scan Failed</h3>
+                    <p className="text-red-700 dark:text-red-300 font-bold">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {results && (
               <div className="mt-8 space-y-4">
