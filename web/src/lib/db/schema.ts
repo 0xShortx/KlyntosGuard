@@ -169,8 +169,8 @@ export const guardTokenUsage = pgTable('guard_token_usage', {
 })
 
 /**
- * Scan History - Track individual scans (OPTIONAL)
- * This table structure is prepared but not actively used yet
+ * Scan History - Track individual scans
+ * NOTE: Matches existing database schema
  */
 export const guardScans = pgTable('guard_scans', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -193,7 +193,38 @@ export const guardScans = pgTable('guard_scans', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+/**
+ * Vulnerabilities - Individual security issues found in scans
+ */
+export const guardVulnerabilities = pgTable('guard_vulnerabilities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  scanId: uuid('scan_id')
+    .notNull()
+    .references(() => guardScans.id, { onDelete: 'cascade' }),
+
+  // Vulnerability details
+  severity: varchar('severity', { length: 50 }).notNull(), // 'critical' | 'high' | 'medium' | 'low'
+  category: varchar('category', { length: 100 }).notNull(), // 'sql_injection' | 'xss' | 'hardcoded_secret' etc.
+  message: text('message').notNull(),
+
+  // Location in code
+  line: integer('line'),
+  column: integer('column'),
+  endLine: integer('end_line'),
+  endColumn: integer('end_column'),
+
+  // Additional context
+  codeSnippet: text('code_snippet'),
+  suggestion: text('suggestion'),
+  cwe: varchar('cwe', { length: 20 }), // CWE-89, CWE-79, etc.
+
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 // Export types
+export type User = typeof user.$inferSelect
+export type NewUser = typeof user.$inferInsert
 export type GuardApiKey = typeof guardApiKeys.$inferSelect
 export type NewGuardApiKey = typeof guardApiKeys.$inferInsert
 export type GuardUsage = typeof guardUsage.$inferSelect
@@ -204,3 +235,5 @@ export type GuardTokenUsage = typeof guardTokenUsage.$inferSelect
 export type NewGuardTokenUsage = typeof guardTokenUsage.$inferInsert
 export type GuardScan = typeof guardScans.$inferSelect
 export type NewGuardScan = typeof guardScans.$inferInsert
+export type GuardVulnerability = typeof guardVulnerabilities.$inferSelect
+export type NewGuardVulnerability = typeof guardVulnerabilities.$inferInsert
