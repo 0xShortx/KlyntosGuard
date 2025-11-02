@@ -1,3 +1,4 @@
 import { auth } from '@/lib/auth'
 
-export const { GET, POST } = auth.handler
+// Export all HTTP methods for Better Auth
+export const { GET, POST, PUT, PATCH, DELETE, OPTIONS } = auth.handler
