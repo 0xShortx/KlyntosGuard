@@ -43,32 +43,20 @@ export function LoginForm() {
     }
   }
 
-  const handleGitHubLogin = async () => {
+  const handleGitHubLogin = () => {
     setIsLoading(true)
-    try {
-      await authClient.signIn.social({
-        provider: 'github',
-        callbackURL: searchParams.get('callbackUrl') || '/dashboard',
-      })
-    } catch (err: any) {
-      console.error('GitHub login error:', err)
-      setError(err?.message || 'Failed to login with GitHub')
-      setIsLoading(false)
-    }
+    setError('')
+    // Navigate to GitHub OAuth - this will redirect to GitHub's authorization page
+    const callbackUrl = searchParams.get('callbackUrl') || '/guardrails'
+    window.location.href = `/api/auth/sign-in/github?callbackURL=${encodeURIComponent(callbackUrl)}`
   }
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     setIsLoading(true)
-    try {
-      await authClient.signIn.social({
-        provider: 'google',
-        callbackURL: searchParams.get('callbackUrl') || '/dashboard',
-      })
-    } catch (err: any) {
-      console.error('Google login error:', err)
-      setError(err?.message || 'Failed to login with Google')
-      setIsLoading(false)
-    }
+    setError('')
+    // Navigate to Google OAuth - this will redirect to Google's authorization page
+    const callbackUrl = searchParams.get('callbackUrl') || '/guardrails'
+    window.location.href = `/api/auth/sign-in/google?callbackURL=${encodeURIComponent(callbackUrl)}`
   }
 
   return (

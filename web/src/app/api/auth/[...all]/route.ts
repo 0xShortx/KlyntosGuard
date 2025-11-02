@@ -1,4 +1,11 @@
 import { auth } from '@/lib/auth'
 
-// Export all HTTP methods for Better Auth
-export const { GET, POST, PUT, PATCH, DELETE, OPTIONS } = auth.handler
+// Better Auth handler for Next.js App Router
+// This handles all auth endpoints: /api/auth/*
+export async function GET(request: Request) {
+  return auth.handler(request)
+}
+
+export async function POST(request: Request) {
+  return auth.handler(request)
+}
