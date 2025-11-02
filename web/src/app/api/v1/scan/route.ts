@@ -120,46 +120,51 @@ export async function POST(request: NextRequest) {
 
     const { userId, apiKeyId } = authResult
 
-    // Check user's subscription and usage
-    const [subscription] = await db
-      .select()
-      .from(guardSubscriptions)
-      .where(eq(guardSubscriptions.userId, sql`${userId}::uuid`))
-      .limit(1)
+    // TODO: Re-enable subscription checks after migrating guardSubscriptions table to TEXT
+    // For now, treat all users as having basic access (Haiku model, standard depth)
+    const isPro = false
+    const isBasic = true
 
-    const isPro = subscription?.planTier === 'pro'
-    const isBasic = subscription?.planTier === 'basic'
+    // Check user's subscription and usage (commented out until guardSubscriptions migration)
+    // const [subscription] = await db
+    //   .select()
+    //   .from(guardSubscriptions)
+    //   .where(eq(guardSubscriptions.userId, userId))
+    //   .limit(1)
+    //
+    // const isPro = subscription?.planTier === 'pro'
+    // const isBasic = subscription?.planTier === 'basic'
 
-    // For Basic users: check monthly scan limit
-    if (isBasic) {
-      const now = new Date()
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-
-      const result = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(guardScans)
-        .where(
-          and(
-            eq(guardScans.userId, userId),
-            gte(guardScans.createdAt, firstDayOfMonth)
-          )
-        )
-
-      const monthlyScans = result[0]?.count || 0
-
-      if (monthlyScans >= 1000) {
-        return NextResponse.json(
-          {
-            error: 'Monthly scan limit reached',
-            message: 'You have reached the 1,000 scans/month limit for Basic plan. Upgrade to Pro for unlimited scans.',
-            current_usage: monthlyScans,
-            limit: 1000,
-            upgrade_url: '/pricing',
-          },
-          { status: 429 }
-        )
-      }
-    }
+    // For Basic users: check monthly scan limit (disabled for testing)
+    // if (isBasic) {
+    //   const now = new Date()
+    //   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    //
+    //   const result = await db
+    //     .select({ count: sql<number>`count(*)::int` })
+    //     .from(guardScans)
+    //     .where(
+    //       and(
+    //         eq(guardScans.userId, userId),
+    //         gte(guardScans.createdAt, firstDayOfMonth)
+    //       )
+    //     )
+    //
+    //   const monthlyScans = result[0]?.count || 0
+    //
+    //   if (monthlyScans >= 1000) {
+    //     return NextResponse.json(
+    //       {
+    //         error: 'Monthly scan limit reached',
+    //         message: 'You have reached the 1,000 scans/month limit for Basic plan. Upgrade to Pro for unlimited scans.',
+    //         current_usage: monthlyScans,
+    //         limit: 1000,
+    //         upgrade_url: '/pricing',
+    //       },
+    //       { status: 429 }
+    //     )
+    //   }
+    // }
 
     // Parse request body
     const body: ScanRequest = await request.json()
