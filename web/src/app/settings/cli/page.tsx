@@ -128,7 +128,7 @@ export default function CliSettingsPage() {
           CLI API Keys
         </h1>
         <p className="text-gray-600 mt-2">
-          Generate API keys to authenticate the KlyntosGuard CLI
+          Generate API keys to authenticate the KlyntosGuard CLI for security scanning
         </p>
       </div>
 
@@ -204,7 +204,7 @@ export default function CliSettingsPage() {
                 <div className="text-sm text-gray-600">
                   <p>• Install CLI: <code className="bg-gray-100 px-1 rounded">pip install klyntos-guard</code></p>
                   <p>• Run the command above to authenticate</p>
-                  <p>• Start using: <code className="bg-gray-100 px-1 rounded">kg chat "Hello!"</code></p>
+                  <p>• Scan code: <code className="bg-gray-100 px-1 rounded">kg scan your-file.py</code></p>
                 </div>
               </div>
             </div>
@@ -290,8 +290,11 @@ export default function CliSettingsPage() {
             <p className="pt-2"><strong>Login:</strong></p>
             <code className="block p-2 bg-white rounded">kg auth login --api-key YOUR_KEY</code>
 
-            <p className="pt-2"><strong>Test it:</strong></p>
-            <code className="block p-2 bg-white rounded">kg chat "Hello, world!"</code>
+            <p className="pt-2"><strong>Scan your code:</strong></p>
+            <code className="block p-2 bg-white rounded">kg scan your-file.py</code>
+
+            <p className="pt-2"><strong>View scan history:</strong></p>
+            <code className="block p-2 bg-white rounded">kg report list</code>
 
             <p className="pt-2">
               <a href="https://github.com/0xShortx/KlyntosGuard" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
