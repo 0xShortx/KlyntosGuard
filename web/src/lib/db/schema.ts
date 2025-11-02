@@ -170,41 +170,45 @@ export const guardTokenUsage = pgTable('guard_token_usage', {
 
 /**
  * Scan History - Track individual scans
- * NOTE: Matches existing database schema
+ * NOTE: Uses TEXT for IDs to match Better Auth standard
  */
 export const guardScans = pgTable('guard_scans', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
 
   // Scan details
-  fileName: varchar('file_name', { length: 500 }),
-  fileSize: integer('file_size'),
-  tokensConsumed: integer('tokens_consumed').default(0),
+  fileName: text('file_name'),
+  language: text('language'),
+  code: text('code'),
+  policy: text('policy').default('moderate'),
 
   // Results
-  issuesFound: integer('issues_found').default(0),
-  severity: varchar('severity', { length: 50 }), // 'low', 'medium', 'high', 'critical'
+  status: text('status').notNull(), // 'passed' | 'failed'
+  vulnerabilityCount: integer('vulnerability_count').default(0),
 
   // Metadata
   scanDurationMs: integer('scan_duration_ms'),
-  apiKeyUsed: varchar('api_key_used', { length: 100 }),
+  apiKeyId: text('api_key_id'),
 
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
 /**
  * Vulnerabilities - Individual security issues found in scans
  */
 export const guardVulnerabilities = pgTable('guard_vulnerabilities', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  scanId: uuid('scan_id')
+  id: text('id').primaryKey(),
+  scanId: text('scan_id')
     .notNull()
     .references(() => guardScans.id, { onDelete: 'cascade' }),
 
   // Vulnerability details
-  severity: varchar('severity', { length: 50 }).notNull(), // 'critical' | 'high' | 'medium' | 'low'
-  category: varchar('category', { length: 100 }).notNull(), // 'sql_injection' | 'xss' | 'hardcoded_secret' etc.
+  severity: text('severity').notNull(), // 'critical' | 'high' | 'medium' | 'low'
+  category: text('category').notNull(), // 'sql_injection' | 'xss' | 'hardcoded_secret' etc.
   message: text('message').notNull(),
 
   // Location in code
@@ -216,7 +220,7 @@ export const guardVulnerabilities = pgTable('guard_vulnerabilities', {
   // Additional context
   codeSnippet: text('code_snippet'),
   suggestion: text('suggestion'),
-  cwe: varchar('cwe', { length: 20 }), // CWE-89, CWE-79, etc.
+  cwe: text('cwe'), // CWE-89, CWE-79, etc.
 
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
