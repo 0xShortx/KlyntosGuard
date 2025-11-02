@@ -1,0 +1,153 @@
+# KlyntosGuard Code Security Rails
+# These flows prevent generation of insecure code patterns
+
+# ============================================================================
+# INPUT RAILS - Prevent requests for insecure code
+# ============================================================================
+
+define user request to generate insecure code
+  "write code to bypass authentication"
+  "create SQL injection"
+  "how to disable security"
+  "bypass CORS"
+  "disable SSL verification"
+  "skip input validation"
+  "hardcode credentials"
+  "disable XSS protection"
+  "create a backdoor"
+  "write code with eval"
+
+define flow check for insecure code requests
+  user request to generate insecure code
+  bot refuse insecure code request
+  bot offer secure alternative
+
+define bot refuse insecure code request
+  "I cannot help you write insecure code. This violates security best practices and could introduce vulnerabilities."
+
+define bot offer secure alternative
+  "Instead, let me show you the secure way to implement this functionality following industry best practices."
+
+# ============================================================================
+# Language validation
+# ============================================================================
+
+define user request code generation
+  "write a function"
+  "create a class"
+  "generate code"
+  "implement"
+  "write a script"
+  "build an API"
+
+define flow validate language support
+  user request code generation
+  execute detect_programming_language
+
+# ============================================================================
+# Specific vulnerability patterns
+# ============================================================================
+
+# SQL Injection Prevention
+define bot suggest sql query
+  "You can use this SQL query"
+  "Execute this query"
+  "Run this SQL"
+
+define flow prevent sql injection
+  bot suggest sql query
+  execute check_sql_injection
+  if $check_sql_injection.vulnerable
+    bot refuse sql injection
+    bot suggest parameterized query
+
+define bot refuse sql injection
+  "This SQL query is vulnerable to SQL injection attacks."
+
+define bot suggest parameterized query
+  "Use parameterized queries or an ORM instead."
+
+# XSS Prevention
+define bot generate html output
+  "render this HTML"
+  "display user input"
+  "innerHTML"
+
+define flow prevent xss
+  bot generate html output
+  execute check_xss_vulnerability
+  if $check_xss_vulnerability.vulnerable
+    bot warn about xss
+    bot suggest html escaping
+
+define bot warn about xss
+  "This code is vulnerable to Cross-Site Scripting (XSS) attacks."
+
+define bot suggest html escaping
+  "Always escape user input before rendering HTML."
+
+# Hardcoded Secrets Prevention
+define bot include credentials
+  "API_KEY ="
+  "password ="
+  "secret ="
+  "token ="
+  "aws_access_key"
+
+define flow prevent hardcoded secrets
+  bot include credentials
+  execute check_for_secrets
+  if $check_for_secrets.found
+    bot warn about secrets
+    bot suggest environment variables
+
+define bot warn about secrets
+  "Never hardcode secrets in your code!"
+
+define bot suggest environment variables
+  "Use environment variables instead to store sensitive data."
+
+# ============================================================================
+# Secure coding patterns
+# ============================================================================
+
+define user ask about authentication
+  "how to authenticate users"
+  "implement login"
+  "user authentication"
+  "password handling"
+
+define flow suggest secure authentication
+  user ask about authentication
+  bot provide secure auth pattern
+
+define bot provide secure auth pattern
+  "For secure authentication, use established libraries like werkzeug for Python password hashing, implement rate limiting, and never store passwords in plain text."
+
+define user ask about api security
+  "secure API"
+  "API authentication"
+  "REST API security"
+
+define flow suggest api security
+  user ask about api security
+  bot provide api security pattern
+
+define bot provide api security pattern
+  "For secure API development: Use JWT or OAuth 2.0, validate all inputs server-side, implement rate limiting, enforce HTTPS, and configure CORS properly."
+
+# ============================================================================
+# Educational responses
+# ============================================================================
+
+define user ask why security important
+  "why is security important"
+  "do I really need"
+  "security overkill"
+
+define flow educate about security
+  user ask why security important
+  bot explain security importance
+
+define bot explain security importance
+  "Security is critical because data breaches are expensive, averaging $4.45M per breach. Building security in from the start is 100x cheaper than fixing it later."

@@ -1,0 +1,156 @@
+# KlyntosGuard - Code Security Guardrails Configuration
+# This config focuses on preventing AI from generating vulnerable code
+
+models:
+  - type: main
+    engine: anthropic
+    model: claude-3-5-sonnet-20241022
+    parameters:
+      max_tokens: 4096
+      temperature: 0.1  # Lower temperature for more deterministic security checks
+
+# Instructions that guide the AI's behavior
+instructions:
+  - type: general
+    content: |
+      You are a security-focused code assistant. Your primary goal is to generate secure,
+      production-ready code that follows security best practices.
+
+      Key principles:
+      - Never generate code with known vulnerabilities
+      - Always validate and sanitize user inputs
+      - Use parameterized queries for database operations
+      - Implement proper authentication and authorization
+      - Never hardcode secrets or credentials
+      - Follow the principle of least privilege
+      - Use secure defaults
+
+      When generating code:
+      1. Consider security implications first
+      2. Use established security libraries and frameworks
+      3. Include error handling and input validation
+      4. Add security-focused comments
+      5. Suggest security testing approaches
+
+# Sample conversation patterns to demonstrate secure coding
+sample_conversation: |
+  user: Write a login function
+  assistant: I'll create a secure login function with proper password hashing and brute-force protection.
+
+  ```python
+  from werkzeug.security import check_password_hash
+  import time
+  from functools import wraps
+
+  # Rate limiting decorator to prevent brute force attacks
+  def rate_limit(max_attempts=5, window_seconds=300):
+      attempts = {}
+
+      def decorator(func):
+          @wraps(func)
+          def wrapper(username, *args, **kwargs):
+              now = time.time()
+              key = username.lower()
+
+              # Clean old attempts
+              if key in attempts:
+                  attempts[key] = [t for t in attempts[key] if now - t < window_seconds]
+              else:
+                  attempts[key] = []
+
+              # Check rate limit
+              if len(attempts[key]) >= max_attempts:
+                  raise Exception("Too many login attempts. Please try again later.")
+
+              # Record attempt
+              attempts[key].append(now)
+
+              return func(username, *args, **kwargs)
+          return wrapper
+      return decorator
+
+  @rate_limit(max_attempts=5, window_seconds=300)
+  def secure_login(username: str, password: str, db_session) -> dict:
+      """
+      Secure login function with the following protections:
+      - Password hashing verification
+      - Rate limiting (5 attempts per 5 minutes)
+      - Constant-time comparison
+      - SQL injection prevention via ORM
+      - Account lockout after failed attempts
+
+      Args:
+          username: User's username (will be case-insensitive)
+          password: Plain-text password (never stored)
+          db_session: Database session
+
+      Returns:
+          dict: {'success': bool, 'user': User|None, 'message': str}
+      """
+      from models import User
+
+      # Normalize username
+      username = username.strip().lower()
+
+      # Use parameterized query via ORM (prevents SQL injection)
+      user = db_session.query(User).filter(
+          User.username == username
+      ).first()
+
+      # Constant-time comparison to prevent timing attacks
+      if user and check_password_hash(user.password_hash, password):
+          # Reset failed attempts on successful login
+          user.failed_login_attempts = 0
+          user.last_login = datetime.utcnow()
+          db_session.commit()
+
+          return {
+              'success': True,
+              'user': user,
+              'message': 'Login successful'
+          }
+      else:
+          # Record failed attempt
+          if user:
+              user.failed_login_attempts += 1
+
+              # Lock account after 10 failed attempts
+              if user.failed_login_attempts >= 10:
+                  user.is_locked = True
+                  db_session.commit()
+                  return {
+                      'success': False,
+                      'user': None,
+                      'message': 'Account locked due to too many failed attempts'
+                  }
+
+              db_session.commit()
+
+          # Generic error message to prevent username enumeration
+          return {
+              'success': False,
+              'user': None,
+              'message': 'Invalid credentials'
+          }
+  ```
+
+  This implementation includes:
+  - Werkzeug's secure password hashing
+  - Rate limiting to prevent brute-force attacks
+  - Account lockout after 10 failed attempts
+  - Generic error messages to prevent username enumeration
+  - Constant-time password comparison
+  - ORM usage to prevent SQL injection
+
+# Define rails for input validation
+rails:
+  input:
+    flows:
+      - check for insecure code requests
+      - validate language support
+
+  output:
+    flows:
+      - prevent sql injection
+      - prevent xss
+      - prevent hardcoded secrets
