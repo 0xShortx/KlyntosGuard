@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, Query
 from datetime import datetime, timedelta
-from klyntos_guard.api.dependencies import get_current_user
+from klyntos_guard.api.dependencies_real import get_current_user
 
 router = APIRouter()
 

@@ -9,7 +9,7 @@ python-dotenv>=1.0.0
 openai>=1.54.0
 anthropic>=0.39.0
 google-generativeai>=0.8.3
-azure-openai>=1.0.0
+# Azure OpenAI is included in the openai package
 langchain>=0.3.7
 langchain-openai>=0.2.9
 langchain-anthropic>=0.3.0

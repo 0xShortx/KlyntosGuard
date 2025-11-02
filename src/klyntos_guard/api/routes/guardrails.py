@@ -12,7 +12,7 @@ from klyntos_guard.api.schemas.guardrails import (
     GuardrailsResponse,
     ViolationDetail,
 )
-from klyntos_guard.api.dependencies import get_current_user, get_guardrails_engine
+from klyntos_guard.api.dependencies_real import get_current_user, get_guardrails_engine
 
 logger = structlog.get_logger(__name__)
 

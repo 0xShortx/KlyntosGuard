@@ -7,12 +7,15 @@ import { drizzle } from 'drizzle-orm/neon-http'
 import { neon } from '@neondatabase/serverless'
 import * as schema from './schema'
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set')
+// Support both local DATABASE_URL and Vercel's storage_DATABASE_URL
+const databaseUrl = process.env.storage_DATABASE_URL || process.env.DATABASE_URL
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL or storage_DATABASE_URL environment variable is not set')
 }
 
 // Create Neon HTTP client (optimized for serverless)
-const sql = neon(process.env.DATABASE_URL)
+const sql = neon(databaseUrl)
 
 // Create Drizzle instance
 export const db = drizzle(sql, { schema })

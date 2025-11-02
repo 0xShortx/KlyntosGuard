@@ -1,7 +1,7 @@
 """Subscription management endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from klyntos_guard.api.dependencies import get_current_user
+from klyntos_guard.api.dependencies_real import get_current_user
 from klyntos_guard.payments import StripeClient, SUBSCRIPTION_PLANS
 
 router = APIRouter()

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Shield, Key, Terminal, BookOpen, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react'
+import { Shield, Key, Terminal, BookOpen, TrendingUp, CheckCircle, AlertTriangle, LogOut } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useSession, authClient } from '@/lib/auth-client'
 
 interface SubscriptionStatus {
   isActive: boolean
@@ -14,9 +15,11 @@ interface SubscriptionStatus {
 }
 
 export default function DashboardPage() {
+  const { data: session, isPending } = useSession()
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null)
   const [hasApiKey, setHasApiKey] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -40,13 +43,24 @@ export default function DashboardPage() {
     }
   }
 
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    try {
+      await authClient.signOut()
+      window.location.href = '/login'
+    } catch (error) {
+      console.error('Sign out error:', error)
+      setIsSigningOut(false)
+    }
+  }
+
   const usagePercentage = subscription
     ? subscription.plan === 'pro'
       ? 0
       : (subscription.scansUsed / subscription.scansLimit) * 100
     : 0
 
-  if (isLoading) {
+  if (isPending || isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -84,9 +98,26 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-5xl font-black mb-4">DASHBOARD</h1>
-          <p className="text-xl text-gray-700">Protect your code from vulnerabilities</p>
+        <div className="mb-12 flex justify-between items-start">
+          <div>
+            <h1 className="text-5xl font-black mb-4">DASHBOARD</h1>
+            {session?.user && (
+              <p className="text-xl text-gray-700">
+                Welcome back, <span className="font-bold">{session.user.name || session.user.email}</span>
+              </p>
+            )}
+            {!session?.user && (
+              <p className="text-xl text-gray-700">Protect your code from vulnerabilities</p>
+            )}
+          </div>
+          <Button
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="bg-black text-white hover:bg-red-600 font-black border-4 border-black hover:border-red-600 px-6 py-3"
+          >
+            <LogOut className="w-5 h-5 mr-2" />
+            {isSigningOut ? 'SIGNING OUT...' : 'SIGN OUT'}
+          </Button>
         </div>
 
         {/* Subscription Status */}

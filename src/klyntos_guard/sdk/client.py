@@ -61,7 +61,13 @@ class KlyntosGuardClient:
         }
 
         if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+            # Support both JWT tokens and API keys
+            # JWT tokens should already have 'Bearer ' prefix from CLI
+            # API keys need the prefix added
+            if self.api_key.startswith("Bearer "):
+                headers["Authorization"] = self.api_key
+            else:
+                headers["Authorization"] = f"Bearer {self.api_key}"
 
         return headers
 

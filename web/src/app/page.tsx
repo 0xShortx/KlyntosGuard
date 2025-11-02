@@ -21,13 +21,13 @@ export default function HomePage() {
 
             <div className="flex items-center space-x-4">
               <Link
-                href="/dashboard"
+                href="/login"
                 className="text-sm font-bold uppercase tracking-wide text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
               >
                 Sign In
               </Link>
               <Link
-                href="/pricing"
+                href="/signup"
                 className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black border-4 border-black dark:border-white font-black uppercase tracking-wide hover:bg-blue-600 hover:border-blue-600 dark:hover:bg-blue-600 dark:hover:text-white dark:hover:border-blue-600 transition-colors"
               >
                 Get Started

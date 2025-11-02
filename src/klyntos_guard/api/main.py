@@ -9,7 +9,7 @@ import structlog
 from klyntos_guard.core.config import settings
 from klyntos_guard.api.routes import (
     guardrails,
-    auth,
+    auth_real as auth,  # Use real auth with JWT and database
     subscriptions,
     webhooks,
     health,

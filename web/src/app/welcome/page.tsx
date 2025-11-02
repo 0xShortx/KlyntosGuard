@@ -1,20 +1,39 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Shield, CheckCircle, Terminal, Key, BookOpen, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { useSession } from '@/lib/auth-client'
 
 export default function WelcomePage() {
   const router = useRouter()
+  const { data: session, isPending } = useSession()
   const [currentStep, setCurrentStep] = useState(1)
   const [apiKeyGenerated, setApiKeyGenerated] = useState(false)
+
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!isPending && !session) {
+      router.push('/login')
+    }
+  }, [session, isPending, router])
 
   const handleComplete = () => {
     router.push('/dashboard')
   }
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Shield className="w-16 h-16 animate-pulse" />
+      </div>
+    )
+  }
+
+  const userName = session?.user?.name || session?.user?.email || 'there'
 
   return (
     <div className="min-h-screen bg-white">
@@ -34,7 +53,9 @@ export default function WelcomePage() {
           <div className="inline-block p-6 bg-green-100 border-4 border-black mb-6">
             <CheckCircle className="w-16 h-16 text-green-600 mx-auto" strokeWidth={3} />
           </div>
-          <h1 className="text-6xl font-black mb-4">WELCOME TO<br />KLYNTOS GUARD!</h1>
+          <h1 className="text-6xl font-black mb-4">
+            WELCOME{session?.user && `, ${userName.toUpperCase()}`}!
+          </h1>
           <p className="text-xl text-gray-700 font-bold">
             Let's get you set up in 3 quick steps
           </p>

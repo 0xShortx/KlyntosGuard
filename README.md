@@ -51,50 +51,101 @@ KlyntosGuard is built on a modular architecture with the following core componen
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- Node.js 18+ (for dashboard)
-- PostgreSQL 12+ (optional, for production)
-- Redis 6+ (optional, for caching)
+- Python 3.11 or higher
+- Docker (for PostgreSQL and Redis)
+- PostgreSQL 15+ (or use Docker)
+- Redis 7+ (optional, for caching)
 
-### Installation
+### Fastest Setup (Docker Compose)
 
 ```bash
 # Clone the repository
-git clone https://github.com/klyntosai/KlyntosGuard.git
+git clone https://github.com/0xShortx/KlyntosGuard.git
 cd KlyntosGuard
 
+# Start all services (API, PostgreSQL, Redis)
+docker-compose up -d
+
+# Install CLI globally
+pip install -e .
+
+# Create your account
+kg auth signup
+
+# Start chatting!
+kg chat "Hello, test the guardrails"
+```
+
+### Local Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/0xShortx/KlyntosGuard.git
+cd KlyntosGuard
+
+# Run quick start script
+./scripts/quickstart.sh
+
+# The script will:
+# 1. Create virtual environment
+# 2. Install dependencies
+# 3. Start PostgreSQL and Redis with Docker
+# 4. Initialize database
+# 5. Show next steps
+```
+
+### Manual Setup
+
+```bash
 # Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install development dependencies (optional)
-pip install -r requirements-dev.txt
+# Install package
+pip install -e .
 
 # Set up environment variables
 cp .env.example .env
 # Edit .env with your configuration
 
-# Run database migrations
-python manage.py migrate
+# Start PostgreSQL (using Docker)
+docker run -d \
+  --name klyntos-postgres \
+  -e POSTGRES_USER=klyntos \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=klyntos_guard \
+  -p 5432:5432 \
+  postgres:15-alpine
 
-# Start the server
-python manage.py runserver
+# Initialize database
+python scripts/init_db.py init
+
+# Start the API server
+uvicorn klyntos_guard.api.main:app --reload
+
+# In another terminal, test the CLI
+kg auth signup
+kg chat
 ```
 
-### Dashboard Setup
+### CLI Commands
 
 ```bash
-# Navigate to dashboard directory
-cd dashboard
+# Authentication
+kg auth signup          # Create new account
+kg auth login           # Login with credentials
+kg auth whoami          # Show current user
 
-# Install dependencies
-npm install
+# Chat & Processing
+kg chat "message"       # Process single message
+kg chat                 # Interactive chat mode
 
-# Start development server
-npm run dev
+# Usage & Billing
+kg usage                # Show token usage and quota
+kg subscription plans   # View pricing plans
+
+# Help
+kg --help              # Show all commands
 ```
 
 ## Configuration
