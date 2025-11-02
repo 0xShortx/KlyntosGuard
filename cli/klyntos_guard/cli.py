@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.progress import Progress
 from rich import print as rprint
 
-from .commands import scan, auth, config, report
+from .commands import scan, auth, config, report, chat
 from . import __version__
 
 console = Console()
@@ -35,6 +35,7 @@ cli.add_command(scan.scan)
 cli.add_command(auth.auth)
 cli.add_command(config.config)
 cli.add_command(report.report)
+cli.add_command(chat.chat)
 
 
 if __name__ == "__main__":
