@@ -1,0 +1,375 @@
+/**
+ * API Route: Code Scanning with AI Analysis
+ * POST /api/v1/scan
+ *
+ * Analyzes code for security vulnerabilities, PII, secrets, and policy violations.
+ * Uses Anthropic Claude for deep code analysis.
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
+import { headers } from 'next/headers'
+import jwt from 'jsonwebtoken'
+import { db, guardSubscriptions, guardScans } from '@/lib/db'
+import { eq, and, sql, gte } from 'drizzle-orm'
+
+const JWT_SECRET = process.env.JWT_SECRET_KEY || 'your-jwt-secret-change-me-min-32-chars'
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
+
+interface ScanRequest {
+  code: string
+  language?: string
+  filename?: string
+  policies?: string[]
+  model?: 'haiku' | 'opus' // Allow Pro users to select model
+  depth?: 'standard' | 'deep' // Allow Pro users to select analysis depth
+}
+
+interface Violation {
+  line: number
+  column?: number
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info'
+  category: string
+  message: string
+  suggestion?: string
+  code_snippet?: string
+}
+
+interface ScanResult {
+  violations: Violation[]
+  summary: {
+    critical: number
+    high: number
+    medium: number
+    low: number
+    info: number
+  }
+  scan_time_ms: number
+}
+
+export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+
+  try {
+    // Verify JWT token
+    const authHeader = headers().get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.substring(7)
+    let userId: string
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any
+      userId = decoded.userId
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid token' },
+        { status: 401 }
+      )
+    }
+
+    // Check user's subscription and usage
+    const [subscription] = await db
+      .select()
+      .from(guardSubscriptions)
+      .where(eq(guardSubscriptions.userId, sql`${userId}::uuid`))
+      .limit(1)
+
+    const isPro = subscription?.planTier === 'pro'
+    const isBasic = subscription?.planTier === 'basic'
+
+    // For Basic users: check monthly scan limit
+    if (isBasic) {
+      // Get first day of current month
+      const now = new Date()
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+      // Count scans this month
+      const result = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(guardScans)
+        .where(
+          and(
+            eq(guardScans.userId, sql`${userId}::uuid`),
+            gte(guardScans.createdAt, firstDayOfMonth)
+          )
+        )
+
+      const monthlyScans = result[0]?.count || 0
+
+      if (monthlyScans >= 1000) {
+        return NextResponse.json(
+          {
+            error: 'Monthly scan limit reached',
+            message: 'You have reached the 1,000 scans/month limit for Basic plan. Upgrade to Pro for unlimited scans.',
+            current_usage: monthlyScans,
+            limit: 1000,
+            upgrade_url: '/pricing',
+          },
+          { status: 429 }
+        )
+      }
+    }
+
+    // Parse request body
+    const body: ScanRequest = await request.json()
+    const {
+      code,
+      language = 'unknown',
+      filename = 'code.txt',
+      policies = ['all'],
+      model: requestedModel,
+      depth: requestedDepth,
+    } = body
+
+    if (!code) {
+      return NextResponse.json(
+        { error: 'Code is required' },
+        { status: 400 }
+      )
+    }
+
+    if (code.length > 50000) {
+      return NextResponse.json(
+        { error: 'Code is too long (max 50,000 characters)' },
+        { status: 400 }
+      )
+    }
+
+    // Determine model and depth based on subscription
+    let modelToUse: string
+    let depthToUse: 'standard' | 'deep'
+
+    if (isPro) {
+      // Pro users can choose model and depth
+      modelToUse = requestedModel === 'opus' ? 'claude-3-opus-20240229' : 'claude-3-haiku-20240307'
+      depthToUse = requestedDepth === 'deep' ? 'deep' : 'standard'
+    } else {
+      // Basic users always use Haiku with standard depth
+      modelToUse = 'claude-3-haiku-20240307'
+      depthToUse = 'standard'
+
+      // Warn if they tried to use Pro features
+      if (requestedModel === 'opus' || requestedDepth === 'deep') {
+        console.log(`Basic user ${userId} attempted to use Pro features`)
+      }
+    }
+
+    // Initialize Anthropic client
+    if (!ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: 'Anthropic API key not configured' },
+        { status: 500 }
+      )
+    }
+
+    const anthropic = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+    })
+
+    // Create AI prompt for security analysis
+    const prompt = createSecurityAnalysisPrompt(code, language, filename, policies, depthToUse, isPro)
+
+    // Call Anthropic Claude
+    const message = await anthropic.messages.create({
+      model: modelToUse,
+      max_tokens: isPro && depthToUse === 'deep' ? 8192 : 4096,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    })
+
+    // Parse AI response
+    const aiResponse = message.content[0].type === 'text' ? message.content[0].text : ''
+    const violations = parseViolations(aiResponse)
+
+    // Calculate summary
+    const summary = {
+      critical: violations.filter(v => v.severity === 'critical').length,
+      high: violations.filter(v => v.severity === 'high').length,
+      medium: violations.filter(v => v.severity === 'medium').length,
+      low: violations.filter(v => v.severity === 'low').length,
+      info: violations.filter(v => v.severity === 'info').length,
+    }
+
+    const scanResult: ScanResult = {
+      violations,
+      summary,
+      scan_time_ms: Date.now() - startTime,
+    }
+
+    // Log scan to database for usage tracking
+    try {
+      await db.insert(guardScans).values({
+        userId: sql`${userId}::uuid`,
+        fileName: filename,
+        fileSize: code.length,
+        issuesFound: violations.length,
+        severity: summary.critical > 0 ? 'critical' : summary.high > 0 ? 'high' : summary.medium > 0 ? 'medium' : 'low',
+        scanDurationMs: Date.now() - startTime,
+      })
+    } catch (error) {
+      console.error('Error logging scan to database:', error)
+      // Don't fail the request if logging fails
+    }
+
+    return NextResponse.json({
+      success: true,
+      result: scanResult,
+      metadata: {
+        language,
+        filename,
+        policies,
+        lines_of_code: code.split('\n').length,
+        model_used: modelToUse.includes('opus') ? 'opus' : 'haiku',
+        analysis_depth: depthToUse,
+        plan_tier: isPro ? 'pro' : 'basic',
+      },
+    })
+  } catch (error: any) {
+    console.error('Error scanning code:', error)
+
+    return NextResponse.json(
+      {
+        error: 'Failed to scan code',
+        details: error.message,
+      },
+      { status: 500 }
+    )
+  }
+}
+
+function createSecurityAnalysisPrompt(
+  code: string,
+  language: string,
+  filename: string,
+  policies: string[],
+  depth: 'standard' | 'deep',
+  isPro: boolean
+): string {
+  const basePrompt = `You are a security analysis AI for KlyntosGuard, an enterprise code security platform.
+
+Analyze the following ${language} code for security vulnerabilities and policy violations.
+
+FILENAME: ${filename}
+LANGUAGE: ${language}
+POLICIES: ${policies.join(', ')}
+ANALYSIS DEPTH: ${depth}${isPro ? ' (PRO)' : ' (BASIC)'}
+
+CODE:
+\`\`\`${language}
+${code}
+\`\`\``
+
+  const standardAnalysis = `
+
+Analyze for:
+1. **Hardcoded Secrets**: API keys, passwords, tokens, credentials
+2. **PII (Personal Identifiable Information)**: emails, SSNs, credit cards, phone numbers
+3. **SQL Injection**: Unsafe SQL query construction
+4. **XSS (Cross-Site Scripting)**: Unsafe HTML rendering
+5. **Path Traversal**: Unsafe file path handling
+6. **Command Injection**: Unsafe shell command execution
+7. **Insecure Crypto**: Weak encryption, hardcoded keys
+8. **Authentication Issues**: Missing auth, weak validation
+9. **Authorization Issues**: Missing access control, privilege escalation
+10. **Input Validation**: Missing or weak input sanitization`
+
+  const deepAnalysis = `
+
+DEEP ANALYSIS MODE - Perform comprehensive security review:
+
+**Core Vulnerabilities:**
+1. **Hardcoded Secrets**: API keys, passwords, tokens, credentials, private keys
+2. **PII Exposure**: emails, SSNs, credit cards, phone numbers, addresses
+3. **SQL Injection**: Unsafe queries, string concatenation, missing parameterization
+4. **XSS**: Unsafe HTML rendering, missing sanitization, innerHTML usage
+5. **Path Traversal**: Unsafe file operations, missing path validation
+6. **Command Injection**: Unsafe shell execution, missing input sanitization
+7. **Insecure Crypto**: Weak algorithms, hardcoded keys, improper IV usage
+8. **Authentication**: Missing auth, weak validation, insecure token handling
+9. **Authorization**: Missing access control, privilege escalation, IDOR
+10. **Input Validation**: Missing sanitization, type coercion, injection vectors
+
+**Advanced Analysis (Pro Features):**
+11. **Dataflow Tracking**: Trace untrusted input from source to sink
+12. **Cross-File Detection**: Identify vulnerabilities spanning multiple modules
+13. **Business Logic Flaws**: Race conditions, TOCTOU, state management issues
+14. **Dependency Risks**: Vulnerable imports, outdated packages
+15. **Configuration Issues**: Insecure defaults, missing security headers
+16. **Performance Impact**: DoS vectors, resource exhaustion, inefficient queries
+17. **Privacy Concerns**: Data retention, logging sensitive info, GDPR compliance
+18. **Cryptographic Weaknesses**: Key management, random number generation, entropy
+
+For dataflow analysis, trace:
+- Sources: User input, HTTP requests, file reads, environment variables
+- Sinks: Database queries, shell commands, file operations, HTML output
+- Sanitization: Validation, encoding, parameterization along the path`
+
+  const outputFormat = `
+
+For each violation found, provide:
+- Line number (approximate if not exact)
+- Severity: critical, high, medium, low, or info
+- Category: secret, pii, sql-injection, xss, etc.
+- Message: Brief description of the issue
+- Suggestion: How to fix it${depth === 'deep' ? '\n- Dataflow: Source → Transformations → Sink (if applicable)' : ''}
+
+Format your response as JSON:
+{
+  "violations": [
+    {
+      "line": 10,
+      "severity": "critical",
+      "category": "hardcoded-secret",
+      "message": "Hardcoded API key detected",
+      "suggestion": "Move API key to environment variables",
+      "code_snippet": "api_key = 'sk-1234...'"${depth === 'deep' ? ',\n      "dataflow": "User input (line 5) → No sanitization → Database query (line 10)"' : ''}
+    }
+  ]
+}
+
+If no violations are found, return:
+{
+  "violations": []
+}
+
+${depth === 'deep' ? 'Be extremely thorough. Analyze all potential attack vectors and edge cases.' : 'Be thorough but avoid false positives. Focus on real security issues.'}`
+
+  return basePrompt + (depth === 'deep' ? deepAnalysis : standardAnalysis) + outputFormat
+}
+
+function parseViolations(aiResponse: string): Violation[] {
+  try {
+    // Try to extract JSON from the response
+    const jsonMatch = aiResponse.match(/\{[\s\S]*"violations"[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0])
+      return parsed.violations || []
+    }
+
+    // Fallback: Look for JSON array
+    const arrayMatch = aiResponse.match(/\[[\s\S]*\]/)
+    if (arrayMatch) {
+      const parsed = JSON.parse(arrayMatch[0])
+      if (Array.isArray(parsed)) {
+        return parsed
+      }
+    }
+
+    console.warn('Could not parse AI response as JSON:', aiResponse)
+    return []
+  } catch (error) {
+    console.error('Error parsing violations:', error)
+    console.error('AI Response:', aiResponse)
+    return []
+  }
+}

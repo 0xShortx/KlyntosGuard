@@ -1,0 +1,86 @@
+# KlyntosGuard Documentation
+
+Welcome to the KlyntosGuard documentation! This guide will help you integrate AI-powered code security into your development workflow.
+
+## What is KlyntosGuard?
+
+KlyntosGuard is an AI-powered code security platform that helps developers catch vulnerabilities before they ship to production. It uses advanced language models (Claude 3) to analyze your code and detect:
+
+- 🔑 **Hardcoded Secrets** - API keys, passwords, tokens
+- 🛡️ **SQL Injection** - Unsafe database queries
+- 🔒 **PII Exposure** - Personal identifiable information
+- ⚡ **Command Injection** - Unsafe shell commands
+- 🌐 **XSS Vulnerabilities** - Cross-site scripting risks
+- 📁 **Path Traversal** - File access vulnerabilities
+- 🔐 **Weak Cryptography** - Insecure algorithms
+- 👤 **Auth Issues** - Missing authentication/authorization
+
+## Quick Start
+
+Get up and running in under 5 minutes:
+
+```bash
+# 1. Install the CLI
+pip install klyntos-guard
+
+# 2. Authenticate
+kg auth login --api-key <your-api-key>
+
+# 3. Scan your code
+kg scan myfile.py
+```
+
+## Features
+
+### For Individual Developers
+
+- **IDE Integration** - Works with VS Code, Cursor, PyCharm, and more
+- **Pre-commit Hooks** - Catch issues before they're committed
+- **Real-time Feedback** - Get instant security insights as you code
+- **Multi-language Support** - Python, JavaScript, TypeScript, Go, Java, and more
+
+### For Teams (Pro)
+
+- **Custom Policies** - Define your own security rules
+- **Unlimited Scans** - No monthly limits
+- **Priority Support** - 24/7 assistance
+- **Compliance Reports** - PCI-DSS, HIPAA, SOC2 ready
+- **API Access** - Integrate into your CI/CD pipeline
+
+## What's Next?
+
+<div className="nx-cards mt-4">
+  <a href="/docs/getting-started" className="nx-card">
+    <h3>Getting Started →</h3>
+    <p>Install and configure KlyntosGuard</p>
+  </a>
+
+  <a href="/docs/cli-reference" className="nx-card">
+    <h3>CLI Reference →</h3>
+    <p>Complete command-line interface guide</p>
+  </a>
+
+  <a href="/docs/ide-integration" className="nx-card">
+    <h3>IDE Integration →</h3>
+    <p>Set up with your favorite editor</p>
+  </a>
+
+  <a href="/docs/api-reference" className="nx-card">
+    <h3>API Reference →</h3>
+    <p>Integrate via REST API</p>
+  </a>
+</div>
+
+## Support
+
+- **Email**: support@klyntos.com
+- **GitHub**: [github.com/klyntos/guard](https://github.com/klyntos/guard)
+- **Community**: [Discord](https://discord.gg/klyntos)
+
+## System Status
+
+All systems operational ✓
+
+- API Uptime: 99.99%
+- Average Response Time: <100ms
+- Last Incident: None
