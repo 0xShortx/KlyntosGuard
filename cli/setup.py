@@ -38,6 +38,7 @@ setup(
         "pyyaml>=6.0",
         "python-dotenv>=1.0.0",
         "pathspec>=0.11.0",
+        "keyring>=24.0.0",
     ],
     entry_points={
         "console_scripts": [

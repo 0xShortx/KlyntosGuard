@@ -1,0 +1,25 @@
+version: '1.0'
+policy: moderate
+scan:
+  recursive: true
+  max_file_size: 10485760
+  timeout: 300
+  parallel_scans: 4
+severity:
+  minimum: medium
+  fail_on: critical
+exclude:
+- node_modules/**
+- venv/**
+- .git/**
+- '*.test.js'
+- '*.spec.py'
+- test_*.py
+include:
+- '**/*.py'
+- '**/*.js'
+- '**/*.ts'
+- '**/*.java'
+- '**/*.go'
+custom_rules: []
+ignore_vulnerabilities: []
