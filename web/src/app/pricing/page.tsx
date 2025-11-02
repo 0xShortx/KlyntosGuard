@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Check } from 'lucide-react'
+import { Check, Shield, Zap, ArrowRight } from 'lucide-react'
 
 type BillingCycle = 'monthly' | 'yearly'
 type PlanTier = 'basic' | 'pro'
@@ -47,33 +47,34 @@ export default function PricingPage() {
   const plans = [
     {
       id: 'basic' as const,
-      name: 'Guard Basic',
+      name: 'GUARD BASIC',
       description: 'Essential security for individual developers',
       monthlyPrice: 29,
       yearlyPrice: 290,
       features: [
         '1,000 code scans per month',
+        'Claude 3 Haiku AI model',
         'Standard security policies',
         'CLI access with API keys',
         'Email support',
-        'Basic threat detection',
-        'Community updates',
+        'Basic threat detection (10 categories)',
       ],
     },
     {
       id: 'pro' as const,
-      name: 'Guard Pro',
+      name: 'GUARD PRO',
       description: 'Advanced security for teams and organizations',
       monthlyPrice: 99,
       yearlyPrice: 990,
       features: [
         'Unlimited code scans',
+        'Claude 3 Opus AI model',
+        'Deep analysis mode (18 categories)',
         'Custom security policies',
         'Real-time guardrails',
         'Priority support (24/7)',
-        'Advanced threat detection',
-        'Team collaboration',
         'API access',
+        'Team collaboration',
         'Compliance reports',
       ],
       popular: true,
@@ -92,125 +93,229 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Choose Your Plan
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Secure your code with KlyntosGuard's AI-powered safety guardrails
-          </p>
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="border-b-4 border-black bg-white">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <Link href="/" className="flex items-center space-x-3">
+              <Shield className="w-8 h-8" strokeWidth={2.5} />
+              <span className="text-2xl font-black">KLYNTOS<span className="text-blue-600">GUARD</span></span>
+            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="/docs" className="text-sm font-bold uppercase hover:text-blue-600">
+                Docs
+              </Link>
+              <Link href="/dashboard" className="text-sm font-bold uppercase hover:text-blue-600">
+                Dashboard
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
 
-          {/* Billing Toggle */}
-          <div className="inline-flex items-center bg-white rounded-lg p-1 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <div className="inline-block px-6 py-2 bg-blue-600 border-4 border-black mb-6">
+            <div className="flex items-center space-x-2">
+              <Zap className="w-5 h-5 text-white" strokeWidth={3} />
+              <span className="text-sm font-black uppercase text-white">Simple Pricing</span>
+            </div>
+          </div>
+
+          <h1 className="text-6xl sm:text-7xl font-black mb-6 tracking-tight">
+            CHOOSE YOUR PLAN
+          </h1>
+          <p className="text-xl text-gray-700 font-bold max-w-2xl mx-auto">
+            Start protecting your code today. All plans include 14-day money-back guarantee.
+          </p>
+        </div>
+
+        {/* Billing Toggle */}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex border-4 border-black">
             <button
               onClick={() => setBillingCycle('monthly')}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${
+              className={`px-8 py-3 font-black uppercase transition-colors ${
                 billingCycle === 'monthly'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-black text-white'
+                  : 'bg-white text-black hover:bg-gray-100'
               }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setBillingCycle('yearly')}
-              className={`px-6 py-2 rounded-md font-medium transition-colors ${
+              className={`px-8 py-3 font-black uppercase transition-colors border-l-4 border-black ${
                 billingCycle === 'yearly'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-black text-white'
+                  : 'bg-white text-black hover:bg-gray-100'
               }`}
             >
               Yearly
-              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                Save {getSavings(plans[0]).percentage}%
+              <span className="ml-2 px-2 py-1 bg-green-500 text-black text-xs">
+                SAVE 17%
               </span>
             </button>
           </div>
         </div>
 
-        {/* Plans */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {plans.map((plan) => (
-            <Card
-              key={plan.id}
-              className={`relative ${
-                plan.popular
-                  ? 'border-2 border-blue-600 shadow-xl'
-                  : 'border border-gray-200'
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
-                    Most Popular
-                  </span>
-                </div>
-              )}
+        {/* Pricing Cards */}
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
+          {plans.map((plan) => {
+            const price = getPrice(plan)
+            const savings = getSavings(plan)
 
-              <CardHeader>
-                <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
-              </CardHeader>
-
-              <CardContent>
-                {/* Price */}
-                <div className="mb-6">
-                  <div className="flex items-baseline">
-                    <span className="text-4xl font-bold">${getPrice(plan)}</span>
-                    <span className="text-gray-600 ml-2">
-                      /{billingCycle === 'monthly' ? 'month' : 'year'}
-                    </span>
+            return (
+              <div
+                key={plan.id}
+                className={`relative border-4 border-black ${
+                  plan.popular ? 'shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]' : ''
+                }`}
+              >
+                {/* Popular Badge */}
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <div className="bg-blue-600 border-4 border-black px-6 py-2">
+                      <span className="text-white font-black uppercase text-sm">
+                        Most Popular
+                      </span>
+                    </div>
                   </div>
-                  {billingCycle === 'yearly' && (
-                    <p className="text-sm text-green-600 mt-1">
-                      Save ${getSavings(plan).amount}/year
+                )}
+
+                <div className={`${plan.popular ? 'bg-blue-50' : 'bg-white'} p-8`}>
+                  {/* Plan Header */}
+                  <div className="mb-6">
+                    <h3 className="text-3xl font-black mb-2">{plan.name}</h3>
+                    <p className="text-gray-700 font-bold">{plan.description}</p>
+                  </div>
+
+                  {/* Price */}
+                  <div className="mb-6">
+                    <div className="flex items-baseline">
+                      <span className="text-6xl font-black">${price}</span>
+                      <span className="text-2xl font-bold text-gray-600 ml-2">
+                        /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                      </span>
+                    </div>
+                    {billingCycle === 'yearly' && (
+                      <p className="text-sm font-bold text-green-600 mt-2">
+                        Save ${savings.amount}/year ({savings.percentage}% off)
+                      </p>
+                    )}
+                  </div>
+
+                  {/* CTA Button */}
+                  <Button
+                    onClick={() => handleSubscribe(plan.id)}
+                    disabled={loading === plan.id}
+                    className={`w-full py-6 font-black text-lg uppercase border-4 transition-colors mb-8 ${
+                      plan.popular
+                        ? 'bg-blue-600 hover:bg-black text-white border-blue-600 hover:border-black'
+                        : 'bg-black hover:bg-blue-600 text-white border-black hover:border-blue-600'
+                    }`}
+                  >
+                    {loading === plan.id ? (
+                      'LOADING...'
+                    ) : (
+                      <span className="flex items-center justify-center space-x-2">
+                        <span>GET STARTED</span>
+                        <ArrowRight className="w-5 h-5" strokeWidth={3} />
+                      </span>
+                    )}
+                  </Button>
+
+                  {/* Features List */}
+                  <div className="space-y-4">
+                    <p className="font-black uppercase text-sm text-gray-500 mb-4">
+                      WHAT'S INCLUDED:
                     </p>
-                  )}
+                    {plan.features.map((feature, index) => (
+                      <div key={index} className="flex items-start space-x-3">
+                        <div className="flex-shrink-0 w-6 h-6 border-2 border-black bg-green-500 flex items-center justify-center">
+                          <Check className="w-4 h-4 text-black" strokeWidth={3} />
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-                {/* Features */}
-                <ul className="space-y-3">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <Check className="h-5 w-5 text-green-600 mr-3 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-
-              <CardFooter>
-                <Button
-                  onClick={() => handleSubscribe(plan.id)}
-                  disabled={loading !== null}
-                  className={`w-full ${
-                    plan.popular
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-900 hover:bg-gray-800'
-                  }`}
-                  size="lg"
-                >
-                  {loading === plan.id ? 'Loading...' : 'Subscribe Now'}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+              </div>
+            )
+          })}
         </div>
 
-        {/* FAQ or Additional Info */}
+        {/* FAQ */}
+        <div className="max-w-3xl mx-auto border-4 border-black p-8 bg-yellow-50">
+          <h2 className="text-3xl font-black mb-6 uppercase">Frequently Asked Questions</h2>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-black text-lg mb-2">Can I switch plans later?</h3>
+              <p className="text-gray-700 font-bold">
+                Yes! Upgrade or downgrade anytime from your dashboard. Changes take effect at the next billing cycle.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-black text-lg mb-2">What payment methods do you accept?</h3>
+              <p className="text-gray-700 font-bold">
+                We accept all major credit cards (Visa, Mastercard, Amex) via Stripe.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-black text-lg mb-2">Do you offer refunds?</h3>
+              <p className="text-gray-700 font-bold">
+                Yes! We offer a 14-day money-back guarantee. No questions asked.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-black text-lg mb-2">Need an Enterprise plan?</h3>
+              <p className="text-gray-700 font-bold mb-2">
+                Contact us for custom pricing, on-premise deployment, SLA guarantees, and dedicated support.
+              </p>
+              <a
+                href="mailto:sales@klyntos.com"
+                className="inline-block px-6 py-3 bg-black text-white border-4 border-black font-black uppercase hover:bg-blue-600 hover:border-blue-600 transition-colors"
+              >
+                CONTACT SALES →
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Trust Signals */}
         <div className="mt-16 text-center">
-          <p className="text-gray-600">
-            All plans include a 14-day free trial. No credit card required to start.
+          <p className="text-sm font-bold uppercase text-gray-500 mb-4">TRUSTED BY DEVELOPERS AT</p>
+          <div className="flex flex-wrap justify-center items-center gap-8 text-2xl font-black text-gray-400">
+            <span>STARTUP INC</span>
+            <span>•</span>
+            <span>TECH CORP</span>
+            <span>•</span>
+            <span>DEV TEAM</span>
+            <span>•</span>
+            <span>CODE CO</span>
+          </div>
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="mt-16 text-center border-4 border-black p-12 bg-blue-600">
+          <h2 className="text-4xl font-black text-white mb-4">
+            READY TO SECURE YOUR CODE?
+          </h2>
+          <p className="text-xl text-white font-bold mb-8">
+            Join thousands of developers protecting their applications
           </p>
-          <p className="text-gray-600 mt-2">
-            Questions? Contact us at{' '}
-            <a href="mailto:support@klyntos.com" className="text-blue-600 hover:underline">
-              support@klyntos.com
-            </a>
-          </p>
+          <Link
+            href="/docs/getting-started"
+            className="inline-block px-10 py-5 bg-white text-black border-4 border-black font-black text-lg uppercase hover:bg-yellow-300 transition-colors"
+          >
+            VIEW DOCUMENTATION →
+          </Link>
         </div>
       </div>
     </div>

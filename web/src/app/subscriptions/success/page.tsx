@@ -24,6 +24,10 @@ function SuccessContent() {
         console.error('Failed to fetch subscription status:', error)
       } finally {
         setLoading(false)
+        // Auto-redirect to welcome page after 3 seconds
+        setTimeout(() => {
+          window.location.href = '/welcome'
+        }, 3000)
       }
     }
 

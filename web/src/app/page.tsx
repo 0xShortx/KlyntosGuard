@@ -21,13 +21,13 @@ export default function HomePage() {
 
             <div className="flex items-center space-x-4">
               <Link
-                href="/settings/cli"
+                href="/dashboard"
                 className="text-sm font-bold uppercase tracking-wide text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400"
               >
                 Sign In
               </Link>
               <Link
-                href="/settings/cli"
+                href="/pricing"
                 className="px-6 py-3 bg-black dark:bg-white text-white dark:text-black border-4 border-black dark:border-white font-black uppercase tracking-wide hover:bg-blue-600 hover:border-blue-600 dark:hover:bg-blue-600 dark:hover:text-white dark:hover:border-blue-600 transition-colors"
               >
                 Get Started
@@ -59,7 +59,7 @@ export default function HomePage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link
-                href="/settings/cli"
+                href="/pricing"
                 className="group px-10 py-5 bg-blue-600 border-4 border-blue-600 text-white font-black text-lg uppercase tracking-wide hover:bg-black hover:border-black dark:hover:bg-white dark:hover:text-black dark:hover:border-white transition-colors flex items-center space-x-3"
               >
                 <span>Start Now</span>
