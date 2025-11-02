@@ -7,22 +7,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-// import { auth } from '@/lib/auth'  // TODO: Uncomment when Better Auth is set up
+import { auth } from '@/lib/auth'
 import { db, guardApiKeys } from '@/lib/db'
 import { randomBytes, createHash } from 'crypto'
 import { nanoid } from 'nanoid'
 
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Uncomment when Better Auth is configured
-    // const session = await auth.api.getSession({ headers: request.headers })
-    // if (!session) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    // Verify user is authenticated
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    // For now, mock user ID (remove this when Better Auth is ready)
-    const mockUserId = 'mock-user-id'
-    // const userId = session.user.id  // Use this when Better Auth is ready
+    const userId = session.user.id
 
     const body = await request.json()
     const { name, expiresInDays } = body
@@ -40,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Save to database
     const [newKey] = await db.insert(guardApiKeys).values({
       id: nanoid(),
-      userId: mockUserId, // Replace with session.user.id when ready
+      userId: userId,
       name: name?.trim() || 'CLI Access',
       key: hashedKey,
       prefix,

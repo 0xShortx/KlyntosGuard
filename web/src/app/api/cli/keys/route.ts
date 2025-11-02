@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-// import { auth } from '@/lib/auth'  // TODO: Uncomment when Better Auth is set up
+import { auth } from '@/lib/auth'
 import { db, guardApiKeys } from '@/lib/db'
 import { eq, and, desc } from 'drizzle-orm'
 
@@ -14,15 +14,13 @@ import { eq, and, desc } from 'drizzle-orm'
  */
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Uncomment when Better Auth is configured
-    // const session = await auth.api.getSession({ headers: request.headers })
-    // if (!session) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    // Verify user is authenticated
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    // Mock user ID (remove when Better Auth is ready)
-    const mockUserId = 'mock-user-id'
-    // const userId = session.user.id
+    const userId = session.user.id
 
     // Fetch user's API keys
     const keys = await db
@@ -36,7 +34,7 @@ export async function GET(request: NextRequest) {
         expiresAt: guardApiKeys.expiresAt,
       })
       .from(guardApiKeys)
-      .where(eq(guardApiKeys.userId, mockUserId))
+      .where(eq(guardApiKeys.userId, userId))
       .orderBy(desc(guardApiKeys.createdAt))
 
     return NextResponse.json({ keys })
@@ -54,15 +52,13 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    // TODO: Uncomment when Better Auth is configured
-    // const session = await auth.api.getSession({ headers: request.headers })
-    // if (!session) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    // Verify user is authenticated
+    const session = await auth.api.getSession({ headers: request.headers })
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-    // Mock user ID (remove when Better Auth is ready)
-    const mockUserId = 'mock-user-id'
-    // const userId = session.user.id
+    const userId = session.user.id
 
     const { keyId } = await request.json()
 
@@ -80,7 +76,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(guardApiKeys.id, keyId),
-          eq(guardApiKeys.userId, mockUserId)
+          eq(guardApiKeys.userId, userId)
         )
       )
       .returning()
