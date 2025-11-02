@@ -48,7 +48,7 @@ export default function AboutPage() {
           <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
             KlyntosGuard provides developers with the tools to confidently use AI coding assistants
             while maintaining the highest security standards. We combine cutting-edge AI safety
-            research (NVIDIA NeMo Guardrails) with state-of-the-art code analysis (Claude 3.5 Sonnet)
+            research with state-of-the-art code analysis (Claude 3.5 Sonnet)
             to create a hybrid security system that prevents vulnerabilities before they're written
             and catches them if they exist.
           </p>
@@ -74,7 +74,7 @@ export default function AboutPage() {
               <Globe className="w-12 h-12 mb-4 text-blue-600" />
               <h3 className="text-2xl font-black mb-3">Open Source Foundation</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Built on <strong>NVIDIA NeMo Guardrails</strong> - proven, open-source technology
+                Built on proven, open-source guardrails technology
                 trusted by enterprises. We extend it specifically for code security.
               </p>
             </div>
@@ -98,10 +98,10 @@ export default function AboutPage() {
 
           <div className="space-y-6">
             <div className="border-l-4 border-blue-600 pl-6">
-              <h3 className="text-2xl font-black mb-2">NVIDIA NeMo Guardrails</h3>
+              <h3 className="text-2xl font-black mb-2">Advanced Guardrails Engine</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Open-source toolkit for adding programmable guardrails to LLM-based conversational systems.
-                Provides input rails, output rails, and execution rails.
+                Enterprise-grade toolkit for adding programmable guardrails to LLM-based systems.
+                Provides input rails, output rails, and execution rails for comprehensive security.
               </p>
             </div>
 

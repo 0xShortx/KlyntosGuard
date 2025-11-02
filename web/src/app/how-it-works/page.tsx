@@ -114,8 +114,8 @@ export default function HowItWorksPage() {
                 <div className="flex items-start gap-3">
                   <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-1 flex-shrink-0" />
                   <div>
-                    <p className="font-bold">NVIDIA NeMo Guardrails</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Open-source framework by NVIDIA for LLM safety</p>
+                    <p className="font-bold">Advanced Guardrails Engine</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Enterprise-grade framework for LLM safety and security</p>
                   </div>
                 </div>
 
@@ -277,7 +277,7 @@ export default function HowItWorksPage() {
             <pre className="text-sm overflow-x-auto">
 {`User Request
     ↓
-Input Rails (NeMo)
+Input Rails
     ├─ Block dangerous requests ❌
     └─ Validate language ✓
     ↓
@@ -285,7 +285,7 @@ LLM (Claude 3.5 Sonnet)
     ↓
 Generated Code
     ↓
-Output Rails (NeMo)
+Output Rails
     ├─ Execute validate_code() action
     │   ↓
     │   KlyntosGuard Scanner (Claude-powered)
@@ -301,9 +301,9 @@ User Receives Secure Code ✅`}
 
           <div className="grid md:grid-cols-3 gap-6 mt-12">
             <div className="border-4 border-black dark:border-white bg-white dark:bg-black p-6">
-              <h3 className="font-black text-xl mb-3">NVIDIA NeMo</h3>
+              <h3 className="font-black text-xl mb-3">Guardrails Engine</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Open-source guardrails framework with Colang configuration language
+                Programmable security framework with declarative configuration
               </p>
             </div>
 
@@ -317,7 +317,7 @@ User Receives Secure Code ✅`}
             <div className="border-4 border-black dark:border-white bg-white dark:bg-black p-6">
               <h3 className="font-black text-xl mb-3">Custom Actions</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Python bridge connecting NeMo guardrails to our scanner
+                Python bridge connecting guardrails to our security scanner
               </p>
             </div>
           </div>
