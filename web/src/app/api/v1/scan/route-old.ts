@@ -1,23 +1,17 @@
 /**
- * API Route: Code Scanning with AI Analysis (UPDATED)
+ * API Route: Code Scanning with AI Analysis
  * POST /api/v1/scan
  *
  * Analyzes code for security vulnerabilities, PII, secrets, and policy violations.
  * Uses Anthropic Claude for deep code analysis.
- *
- * UPDATED: Supports both JWT (legacy) and API key authentication
- * UPDATED: Saves complete scan results with vulnerabilities to database
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { headers } from 'next/headers'
 import jwt from 'jsonwebtoken'
-import { db, guardApiKeys, guardSubscriptions, guardScans } from '@/lib/db'
-import { guardVulnerabilities } from '@/lib/db/schema'
+import { db, guardSubscriptions, guardScans } from '@/lib/db'
 import { eq, and, sql, gte } from 'drizzle-orm'
-import { createHash } from 'crypto'
-import { nanoid } from 'nanoid'
 
 const JWT_SECRET = process.env.JWT_SECRET_KEY || 'your-jwt-secret-change-me-min-32-chars'
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
@@ -27,8 +21,8 @@ interface ScanRequest {
   language?: string
   filename?: string
   policies?: string[]
-  model?: 'haiku' | 'opus'
-  depth?: 'standard' | 'deep'
+  model?: 'haiku' | 'opus' // Allow Pro users to select model
+  depth?: 'standard' | 'deep' // Allow Pro users to select analysis depth
 }
 
 interface Violation {
@@ -39,11 +33,9 @@ interface Violation {
   message: string
   suggestion?: string
   code_snippet?: string
-  cwe?: string
 }
 
 interface ScanResult {
-  scan_id: string
   violations: Violation[]
   summary: {
     critical: number
@@ -55,70 +47,31 @@ interface ScanResult {
   scan_time_ms: number
 }
 
-/**
- * Authenticate request - supports both API key and JWT
- */
-async function authenticateRequest(request: NextRequest): Promise<{ userId: string; apiKeyId?: string } | null> {
-  const authHeader = headers().get('authorization')
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null
-  }
-
-  const token = authHeader.substring(7)
-
-  // Try API key authentication first (starts with kg_)
-  if (token.startsWith('kg_')) {
-    const hashedKey = createHash('sha256').update(token).digest('hex')
-
-    const [keyRecord] = await db
-      .select()
-      .from(guardApiKeys)
-      .where(
-        and(
-          eq(guardApiKeys.key, hashedKey),
-          eq(guardApiKeys.isActive, true)
-        )
-      )
-      .limit(1)
-
-    if (keyRecord && (!keyRecord.expiresAt || new Date(keyRecord.expiresAt) > new Date())) {
-      // Update last used
-      await db
-        .update(guardApiKeys)
-        .set({ lastUsedAt: new Date() })
-        .where(eq(guardApiKeys.id, keyRecord.id))
-
-      return { userId: keyRecord.userId, apiKeyId: keyRecord.id }
-    }
-  } else {
-    // Try JWT authentication
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any
-      return { userId: decoded.userId }
-    } catch (error) {
-      // Invalid JWT
-    }
-  }
-
-  return null
-}
-
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
   try {
-    // Authenticate request
-    const authResult = await authenticateRequest(request)
-
-    if (!authResult) {
+    // Verify JWT token
+    const authHeader = headers().get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
-        { error: 'Unauthorized - Invalid or missing authentication' },
+        { error: 'Unauthorized - No token provided' },
         { status: 401 }
       )
     }
 
-    const { userId, apiKeyId } = authResult
+    const token = authHeader.substring(7)
+    let userId: string
+
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any
+      userId = decoded.userId
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid token' },
+        { status: 401 }
+      )
+    }
 
     // Check user's subscription and usage
     const [subscription] = await db
@@ -132,15 +85,17 @@ export async function POST(request: NextRequest) {
 
     // For Basic users: check monthly scan limit
     if (isBasic) {
+      // Get first day of current month
       const now = new Date()
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
+      // Count scans this month
       const result = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(guardScans)
         .where(
           and(
-            eq(guardScans.userId, userId),
+            eq(guardScans.userId, sql`${userId}::uuid`),
             gte(guardScans.createdAt, firstDayOfMonth)
           )
         )
@@ -191,12 +146,15 @@ export async function POST(request: NextRequest) {
     let depthToUse: 'standard' | 'deep'
 
     if (isPro) {
+      // Pro users can choose model and depth
       modelToUse = requestedModel === 'opus' ? 'claude-3-opus-20240229' : 'claude-3-haiku-20240307'
       depthToUse = requestedDepth === 'deep' ? 'deep' : 'standard'
     } else {
+      // Basic users always use Haiku with standard depth
       modelToUse = 'claude-3-haiku-20240307'
       depthToUse = 'standard'
 
+      // Warn if they tried to use Pro features
       if (requestedModel === 'opus' || requestedDepth === 'deep') {
         console.log(`Basic user ${userId} attempted to use Pro features`)
       }
@@ -242,59 +200,25 @@ export async function POST(request: NextRequest) {
       info: violations.filter(v => v.severity === 'info').length,
     }
 
-    const scanDuration = Date.now() - startTime
-
-    // Save scan to database
-    const scanId = nanoid()
-    const scanStatus = violations.length > 0 ? 'failed' : 'passed'
-
-    try {
-      // Insert scan record
-      await db.insert(guardScans).values({
-        id: scanId,
-        userId: userId,
-        fileName: filename,
-        language: language,
-        code: code,
-        policy: isPro ? (depthToUse === 'deep' ? 'strict' : 'moderate') : 'moderate',
-        status: scanStatus,
-        vulnerabilityCount: violations.length,
-        scanDurationMs: scanDuration,
-        apiKeyId: apiKeyId || null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-
-      // Insert vulnerabilities if any
-      if (violations.length > 0) {
-        await db.insert(guardVulnerabilities).values(
-          violations.map(v => ({
-            id: nanoid(),
-            scanId: scanId,
-            severity: v.severity,
-            category: v.category,
-            message: v.message,
-            line: v.line,
-            column: v.column || null,
-            endLine: null,
-            endColumn: null,
-            codeSnippet: v.code_snippet || null,
-            suggestion: v.suggestion || null,
-            cwe: v.cwe || null,
-            createdAt: new Date(),
-          }))
-        )
-      }
-    } catch (error) {
-      console.error('Error saving scan to database:', error)
-      // Don't fail the request if database save fails
-    }
-
     const scanResult: ScanResult = {
-      scan_id: scanId,
       violations,
       summary,
-      scan_time_ms: scanDuration,
+      scan_time_ms: Date.now() - startTime,
+    }
+
+    // Log scan to database for usage tracking
+    try {
+      await db.insert(guardScans).values({
+        userId: sql`${userId}::uuid`,
+        fileName: filename,
+        fileSize: code.length,
+        issuesFound: violations.length,
+        severity: summary.critical > 0 ? 'critical' : summary.high > 0 ? 'high' : summary.medium > 0 ? 'medium' : 'low',
+        scanDurationMs: Date.now() - startTime,
+      })
+    } catch (error) {
+      console.error('Error logging scan to database:', error)
+      // Don't fail the request if logging fails
     }
 
     return NextResponse.json({
@@ -397,7 +321,7 @@ For each violation found, provide:
 - Severity: critical, high, medium, low, or info
 - Category: secret, pii, sql-injection, xss, etc.
 - Message: Brief description of the issue
-- Suggestion: How to fix it${depth === 'deep' ? '\n- CWE: Common Weakness Enumeration ID if applicable (e.g., CWE-89)' : ''}
+- Suggestion: How to fix it${depth === 'deep' ? '\n- Dataflow: Source → Transformations → Sink (if applicable)' : ''}
 
 Format your response as JSON:
 {
@@ -408,7 +332,7 @@ Format your response as JSON:
       "category": "hardcoded-secret",
       "message": "Hardcoded API key detected",
       "suggestion": "Move API key to environment variables",
-      "code_snippet": "api_key = 'sk-1234...'"${depth === 'deep' ? ',\n      "cwe": "CWE-798"' : ''}
+      "code_snippet": "api_key = 'sk-1234...'"${depth === 'deep' ? ',\n      "dataflow": "User input (line 5) → No sanitization → Database query (line 10)"' : ''}
     }
   ]
 }
